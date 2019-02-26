@@ -7,7 +7,6 @@ double temp = 0;
 #define Steering_ID 0
 #define RPM_ID 218099784
 #define TEMP_ID 218101064
-#define ANALOG_ID 218100296 // analog input 1-4, assuming 1 for code.
 #define led 13
 #define shiftUp A4
 #define shiftDown A5
@@ -18,11 +17,14 @@ double temp = 0;
 #define neutralSwitch 6
 
 CAN_message_t inMsg;
+CAN_message_t outMsg;
 
 elapsedMillis ECUTimer;
 elapsedMillis pumpTimer;
+elapsedMillis neutralTimer;
 
 boolean timerFlag = 0;
+int cylinderDeactivationEnabled = 0;
 
 void setup()
 {
@@ -56,6 +58,8 @@ void setup()
   }
 
   inMsg.ext = true;
+  outMsg.ext = true;
+  outMsg.len = 8;
 
   ECUTimer = 0;
   pumpTimer = 0;
@@ -160,7 +164,7 @@ void loop()
   if (rpm > 2200 && temp >= 150)
   {
     digitalWrite(fan, HIGH);
-    Serial.println("Fan High.");
+    //Serial.println("Fan High.");
   }
   else if (rpm > 2200 && temp <= 130)
   {
@@ -175,9 +179,22 @@ void loop()
   if (rpm > 10500 && digitalRead(neutralSwitch) == 0)
   {
     digitalWrite(fuelRelay, LOW);
+    cylinderDeactivationEnabled = 0;
   }
   else
   {
     digitalWrite(fuelRelay, HIGH);
+    cylinderDeactivationEnabled = 1;
+  }
+
+  if (neutralTimer > 100)
+  {
+    neutralTimer = 0;
+
+    outMsg.id = 6;
+    outMsg.buf[0] = digitalRead(neutralSwitch);
+    outMsg.buf[1] = cylinderDeactivationEnabled;
+
+    Can0.write(outMsg);
   }
 }
