@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <FlexCan.h>
+#include <kinetis_flexcan.h>
 
 int rpm = 0;
 double temp = 0;
@@ -26,8 +27,7 @@ elapsedMillis neutralTimer;
 boolean timerFlag = 0;
 int cylinderDeactivationEnabled = 0;
 
-void setup()
-{
+void setup() {
 
   pinMode(led, OUTPUT);       // LED
   pinMode(shiftUp, OUTPUT);   // shhift up
@@ -39,7 +39,7 @@ void setup()
   pinMode(neutralSwitch, INPUT_PULLUP);
 
   digitalWrite(led, HIGH);
-  digitalWrite(sparkCut, LOW);
+  digitalWrite(sparkCut, HIGH);
   digitalWrite(fuelRelay, HIGH);
   digitalWrite(fan, LOW);
   digitalWrite(pump, LOW);
@@ -52,8 +52,7 @@ void setup()
   // Allow Extended CAN id's through
   CAN_filter_t allPassFilter;
   allPassFilter.ext = 1;
-  for (uint8_t filterNum = 1; filterNum < 16; filterNum++)
-  {
+  for (uint8_t filterNum = 1; filterNum < 16; filterNum++) {
     Can0.setFilter(allPassFilter, filterNum);
   }
 
@@ -65,17 +64,14 @@ void setup()
   pumpTimer = 0;
 }
 
-void loop()
-{
+void loop() {
 
-  if (Can0.available())
-  {
+  if (Can0.available()) {
 
     Can0.read(inMsg);
     digitalWrite(led, !digitalRead(led)); // show that a message was recieved
 
-    if (inMsg.id == RPM_ID)
-    {
+    if (inMsg.id == RPM_ID) {
       int lowByte = inMsg.buf[0];
       int highByte = inMsg.buf[1];
       int newRPM = ((highByte * 256) + lowByte);
@@ -94,48 +90,43 @@ void loop()
       }
     }
 
-    if (inMsg.id == Steering_ID)
-    {
+    if (inMsg.id == Steering_ID) {
 
       int b0 = inMsg.buf[0];
 
       // shift up
-      if (b0 == 10)
-      {
+      if (b0 == 10) {
 
-        digitalWrite(sparkCut, HIGH);
+        digitalWrite(sparkCut, LOW);
         delay(10);
         digitalWrite(shiftUp, HIGH);
-        delay(200);
+        delay(20);
         digitalWrite(shiftUp, LOW);
-        digitalWrite(sparkCut, LOW);
+        digitalWrite(sparkCut, HIGH);
 
-        Serial.println("Shifted up.");
+        // Serial.println("Shifted up.");
       }
 
       // shift down
-      else if (b0 == 11)
-      {
+      else if (b0 == 11) {
 
-        digitalWrite(sparkCut, HIGH);
+        digitalWrite(sparkCut, LOW);
         delay(10);
         digitalWrite(shiftDown, HIGH);
-        delay(200);
+        delay(20);
         digitalWrite(shiftDown, LOW);
-        digitalWrite(sparkCut, LOW);
+        digitalWrite(sparkCut, HIGH);
 
-        Serial.println("Shifted down.");
+        // Serial.println("Shifted down.");
       }
     }
 
-    if (inMsg.id == TEMP_ID)
-    {
+    if (inMsg.id == TEMP_ID) {
       double lowByte = inMsg.buf[4];
       double highByte = inMsg.buf[5];
       double newTemp = ((highByte * 256) + lowByte);
 
-      if (newTemp > 32767)
-      {
+      if (newTemp > 32767) {
         newTemp = newTemp - 65536;
       }
 
@@ -145,7 +136,8 @@ void loop()
     }
   }
 
-  if (ECUTimer >= 1500 && digitalRead(pump) == 1 && timerFlag == 0) // ENGINE HAS TURNED OFF and pump was on
+  if (ECUTimer >= 1500 && digitalRead(pump) == 1 &&
+      timerFlag == 0) // ENGINE HAS TURNED OFF and pump was on
   {
     digitalWrite(pump, HIGH);
     digitalWrite(fan, LOW);
@@ -155,40 +147,31 @@ void loop()
   }
 
   // run pump for 15 seconds if it was already on (engine running)
-  if (pumpTimer >= 13500)
-  {
+  if (pumpTimer >= 13500) {
     digitalWrite(pump, LOW);
     pumpTimer = 0;
   }
 
-  if (rpm > 2200 && temp >= 150)
-  {
+  if (rpm > 2200 && temp >= 150) {
     digitalWrite(fan, HIGH);
-    //Serial.println("Fan High.");
-  }
-  else if (rpm > 2200 && temp <= 130)
-  {
+    // Serial.println("Fan High.");
+  } else if (rpm > 2200 && temp <= 130) {
     digitalWrite(fan, LOW);
   }
-  if (rpm < 1000)
-  {
+  if (rpm < 1000) {
     digitalWrite(fan, LOW);
   }
 
   //////////////////////cylinder deactivation/////////////////////
-  if (rpm > 10500 && digitalRead(neutralSwitch) == 0)
-  {
+  if (rpm > 10500 && digitalRead(neutralSwitch) == 0) {
     digitalWrite(fuelRelay, LOW);
     cylinderDeactivationEnabled = 0;
-  }
-  else
-  {
+  } else {
     digitalWrite(fuelRelay, HIGH);
     cylinderDeactivationEnabled = 1;
   }
 
-  if (neutralTimer > 100)
-  {
+  if (neutralTimer > 10) {
     neutralTimer = 0;
 
     outMsg.id = 6;
