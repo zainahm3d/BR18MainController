@@ -22,21 +22,21 @@ CAN_message_t outMsg;
 
 elapsedMillis ECUTimer;
 elapsedMillis pumpTimer;
-elapsedMillis neutralTimer;
+elapsedMillis messageTimer;
 
 boolean timerFlag = 0;
 int cylinderDeactivationEnabled = 0;
 
 void setup() {
 
-  pinMode(led, OUTPUT);       // LED
-  pinMode(shiftUp, OUTPUT);   // shhift up
-  pinMode(shiftDown, OUTPUT); // shift down
-  pinMode(fuelRelay, OUTPUT); // fuelRela
-  pinMode(sparkCut, OUTPUT);  // sparkCut
-  pinMode(fan, OUTPUT);       // fan
-  pinMode(pump, OUTPUT);      // pump
-  pinMode(neutralSwitch, INPUT_PULLUP);
+  pinMode(led, OUTPUT);                 // LED
+  pinMode(shiftUp, OUTPUT);             // Shift up
+  pinMode(shiftDown, OUTPUT);           // Shift down
+  pinMode(fuelRelay, OUTPUT);           // Fuel Relay
+  pinMode(sparkCut, OUTPUT);            // Spark cut (to ECU)
+  pinMode(fan, OUTPUT);                 // Fan
+  pinMode(pump, OUTPUT);                // Water Pump
+  pinMode(neutralSwitch, INPUT_PULLUP); // CBR Neutral switch
 
   digitalWrite(led, HIGH);
   digitalWrite(sparkCut, HIGH);
@@ -83,9 +83,7 @@ void loop() {
       ECUTimer = 0;
       timerFlag = 0;
 
-      if (rpm > 1500) // make sure to not engage the water pump while cranking
-                      // starter
-      {
+      if (rpm > 1500) { // Do not not enable pump while cranking
         digitalWrite(pump, HIGH);
       }
     }
@@ -95,7 +93,7 @@ void loop() {
       int b0 = inMsg.buf[0];
 
       // shift up
-      if (b0 == 10) {
+      if (b0 == 10) { // 0x0A
 
         digitalWrite(sparkCut, LOW);
         delay(10);
@@ -108,7 +106,7 @@ void loop() {
       }
 
       // shift down
-      else if (b0 == 11) {
+      else if (b0 == 11) { // 0x0B
 
         digitalWrite(sparkCut, LOW);
         delay(10);
@@ -162,7 +160,7 @@ void loop() {
     digitalWrite(fan, LOW);
   }
 
-  //////////////////////cylinder deactivation/////////////////////
+  // ---------- Cylinder Deactivation ----------
   if (rpm > 10500 && digitalRead(neutralSwitch) == 0) {
     digitalWrite(fuelRelay, LOW);
     cylinderDeactivationEnabled = 0;
@@ -171,8 +169,8 @@ void loop() {
     cylinderDeactivationEnabled = 1;
   }
 
-  if (neutralTimer > 10) {
-    neutralTimer = 0;
+  if (messageTimer > 10) {
+    messageTimer = 0;
 
     outMsg.id = 6;
     outMsg.buf[0] = digitalRead(neutralSwitch);
