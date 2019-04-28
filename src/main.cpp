@@ -24,11 +24,10 @@ elapsedMillis ECUTimer;
 elapsedMillis pumpTimer;
 elapsedMillis messageTimer;
 
-boolean timerFlag = 0;
+int timerFlag = 0;
 int cylinderDeactivationEnabled = 0;
 
 void setup() {
-
   pinMode(led, OUTPUT);                 // LED
   pinMode(shiftUp, OUTPUT);             // Shift up
   pinMode(shiftDown, OUTPUT);           // Shift down
@@ -69,7 +68,7 @@ void loop() {
   if (Can0.available()) {
 
     Can0.read(inMsg);
-    digitalWrite(led, !digitalRead(led)); // show that a message was recieved
+    digitalWrite(led, !digitalRead(led)); // Flip LED state on message Rx
 
     if (inMsg.id == RPM_ID) {
       int lowByte = inMsg.buf[0];
@@ -77,8 +76,8 @@ void loop() {
       int newRPM = ((highByte * 256) + lowByte);
       rpm = newRPM;
 
-      Serial.print("RPM: ");
-      Serial.println(rpm);
+      // Serial.print("RPM: ");
+      // Serial.println(rpm);
       pumpTimer = 0;
       ECUTimer = 0;
       timerFlag = 0;
@@ -88,34 +87,23 @@ void loop() {
       }
     }
 
-    if (inMsg.id == Steering_ID) {
-
-      int b0 = inMsg.buf[0];
-
-      // shift up
-      if (b0 == 10) { // 0x0A
-
+    if (inMsg.id == Steering_ID) { // Message from steering wheel
+      if (inMsg.buf[0] == 10) {    // 0x0A / Upshift
         digitalWrite(sparkCut, LOW);
         delay(10);
         digitalWrite(shiftUp, HIGH);
-        delay(20);
+        delay(75);
         digitalWrite(shiftUp, LOW);
         digitalWrite(sparkCut, HIGH);
-
-        // Serial.println("Shifted up.");
-      }
-
-      // shift down
-      else if (b0 == 11) { // 0x0B
-
+        Serial.println("Shifted up.");
+      } else if (inMsg.buf[0] == 11) { // 0x0B / Downshift
         digitalWrite(sparkCut, LOW);
         delay(10);
         digitalWrite(shiftDown, HIGH);
-        delay(20);
+        delay(80);
         digitalWrite(shiftDown, LOW);
         digitalWrite(sparkCut, HIGH);
-
-        // Serial.println("Shifted down.");
+        Serial.println("Shifted down.");
       }
     }
 
@@ -134,9 +122,8 @@ void loop() {
     }
   }
 
-  if (ECUTimer >= 1500 && digitalRead(pump) == 1 &&
-      timerFlag == 0) // ENGINE HAS TURNED OFF and pump was on
-  {
+  // ENGINE HAS TURNED OFF and pump was on
+  if (ECUTimer >= 1500 && digitalRead(pump) == 1 && timerFlag == 0) {
     digitalWrite(pump, HIGH);
     digitalWrite(fan, LOW);
     rpm = 0;
@@ -176,6 +163,7 @@ void loop() {
     outMsg.buf[0] = digitalRead(neutralSwitch);
     outMsg.buf[1] = cylinderDeactivationEnabled;
 
+    // Serial.println(digitalRead(neutralSwitch));
     Can0.write(outMsg);
   }
 }
