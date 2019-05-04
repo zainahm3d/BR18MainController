@@ -92,18 +92,26 @@ void loop() {
         digitalWrite(sparkCut, LOW);
         delay(10);
         digitalWrite(shiftUp, HIGH);
-        delay(75);
+        delay(50);
         digitalWrite(shiftUp, LOW);
         digitalWrite(sparkCut, HIGH);
         Serial.println("Shifted up.");
+
       } else if (inMsg.buf[0] == 11) { // 0x0B / Downshift
         digitalWrite(sparkCut, LOW);
         delay(10);
         digitalWrite(shiftDown, HIGH);
-        delay(80);
+        delay(70);
         digitalWrite(shiftDown, LOW);
         digitalWrite(sparkCut, HIGH);
         Serial.println("Shifted down.");
+      } else if (inMsg.buf[0] == 14) {
+        digitalWrite(shiftUp, HIGH);
+        delay(7);
+        digitalWrite(shiftDown, HIGH);
+        delay(150);
+        digitalWrite(shiftUp, LOW);
+        digitalWrite(shiftDown, LOW);
       }
     }
 
@@ -162,6 +170,8 @@ void loop() {
     outMsg.id = 6;
     outMsg.buf[0] = digitalRead(neutralSwitch);
     outMsg.buf[1] = cylinderDeactivationEnabled;
+    outMsg.buf[2] = digitalRead(pump);
+    outMsg.buf[3] = digitalRead(fan);
 
     // Serial.println(digitalRead(neutralSwitch));
     Can0.write(outMsg);
