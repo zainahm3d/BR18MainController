@@ -156,9 +156,9 @@ void loop() {
   }
 
   // ---------- Cylinder Deactivation ----------
-  if (rpm > 10500 && digitalRead(neutralSwitch) == 0) {
-    digitalWrite(fuelRelay, LOW);
-    cylinderDeactivationEnabled = 0;
+  if (rpm > 8000 && digitalRead(neutralSwitch) == 0) {
+    // digitalWrite(fuelRelay, LOW);
+    // cylinderDeactivationEnabled = 0;
   } else {
     digitalWrite(fuelRelay, HIGH);
     cylinderDeactivationEnabled = 1;
